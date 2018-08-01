@@ -1,0 +1,2 @@
+# bgg
+Visualise BoardGameGeek data

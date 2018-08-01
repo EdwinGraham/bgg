@@ -13,9 +13,14 @@ library(data.table)
 
 load("bggData.rda") # or load("BGGApp/bggData.rda")
 
+maxGames <- 10000
+
 dtGames <- allData$dtGames
-dtLinks <- allData$dtLinks
-dtRanks <- allData$dtRanks
+setorder(dtGames, -numRatings)
+dtGames <- dtGames[seq(1, min(maxGames, nrow(dtGames)))]
+
+dtLinks <- allData$dtLinks[Id %in% dtGames$Id]
+dtRanks <- allData$dtRanks[Id %in% dtGames$Id]
 dateOfExtract <- allData$date
 rm(allData)
 
@@ -80,15 +85,41 @@ ui <- fluidPage(
   tags$br()
   ,
   
-  # Sidebar for weight range
-  sliderInput(inputId="weightRange",
-              label="Select weight range:",
-              min = 1,
-              max = 4,
-              value = c(1, 4),
-              step = 0.01,
-              round = FALSE)
+  fluidRow(
+    
+    column(4,
+           # Slider for weight range
+           sliderInput(inputId="weightRange",
+                       label="Select weight range:",
+                       min = 1,
+                       max = 4,
+                       value = c(1, 4),
+                       step = 0.01,
+                       round = FALSE)      
+    ),
+    
+    column(4,
+           # Slider for player numbers
+           sliderInput(inputId="playerRange",
+                       label="Filter by recommended player count:",
+                       min = 1,
+                       max = 20,
+                       value = c(1, 20))
+    ),
+    
+    column(4,
+           # Slider for max play time
+           sliderInput(inputId="timeRange",
+                       label="Filter by maximum play time:",
+                       min = 10,
+                       max = 360,
+                       step = 10,
+                       value = c(10, 360))
+    )
+  )
   ,
+  
+ 
   
   # Show the plot
   plotlyOutput("plot")
@@ -125,47 +156,51 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   # Data
-  rv <- reactiveValues(dt = copy(dtGames)[, .(Id, rating=geekRating, numRatings, label, avWeight)])
+  rv <- reactiveValues(dt = copy(dtGames)[, .(Id, rating=geekRating, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)])
   
   # Update data when buttons are pressed
-  observeEvent(input$overall, { rv$dt <- copy(dtGames)[, .(Id, rating=geekRating, numRatings, label, avWeight)] })
+  observeEvent(input$overall, { rv$dt <- copy(dtGames)[, .(Id, rating=geekRating, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)] })
   observeEvent(input$abstract, {
     dtSubGroup <- dtRanks[subGroup=="Abstract", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$childrens, {
     dtSubGroup <- dtRanks[subGroup=="Children's", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$custom, {
     dtSubGroup <- dtRanks[subGroup=="Customisable", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$family, {
     dtSubGroup <- dtRanks[subGroup=="Family", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$party, {
     dtSubGroup <- dtRanks[subGroup=="Party", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$strategy, {
     dtSubGroup <- dtRanks[subGroup=="Strategy", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$thematic, {
     dtSubGroup <- dtRanks[subGroup=="Thematic", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   observeEvent(input$warGames, {
     dtSubGroup <- dtRanks[subGroup=="War games", .(rating), keyby=Id]
-    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight)], dtSubGroup)
+    rv$dt <- merge(dtGames[, .(Id, numRatings, label, avWeight, minPlayersRecommended, maxPlayersRecommended, maxPlayTime)], dtSubGroup)
   })
   
   # Plot
   output$plot <- renderPlotly({
-    plot_ly(rv$dt[avWeight>=input$weightRange[1] &
-                    avWeight<=input$weightRange[2]],
+    plot_ly(rv$dt[avWeight >= input$weightRange[1] &
+                    avWeight <= input$weightRange[2] &
+                    !(maxPlayersRecommended < input$playerRange[1] |
+                        pmin(minPlayersRecommended, 20) > input$playerRange[2]) &
+                    maxPlayTime >= input$timeRange[1] &
+                    maxPlayTime <= input$timeRange[2]],
             x = ~numRatings,
             y = ~rating,
             hoverinfo = "text",
@@ -174,7 +209,7 @@ server <- function(input, output) {
             mode = "markers",
             key = ~Id,
             marker=list(color = ~avWeight,
-                        cmin=0,
+                        cmin=1,
                         cmax=4,
                         colorscale=list(list(0, "rgb(158, 1, 66)"),
                                         list(0.1, "rgb(213, 62, 79)"),
@@ -203,8 +238,8 @@ server <- function(input, output) {
   # Click events
   output$click <- renderUI({
     d <- event_data("plotly_click")
-    if(is.null(d)) cat("Click a point to display details (double-click to clear)") else{
-      tags$a(href=paste0("https://boardgamegeek.com/boardgame/", d$key, "/"), "Click to view this game on BoardGameGeek.")
+    if(is.null(d)) tags$h5("Click a point to display details (double-click to clear)") else{
+      tags$a(href=paste0("https://boardgamegeek.com/boardgame/", d$key, "/"), target="_blank", "Click to view this game on BoardGameGeek.")
     }
   })
   

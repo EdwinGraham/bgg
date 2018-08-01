@@ -3,7 +3,6 @@ library(XML)
 library(httr)
 library(rvest)
 library(data.table)
-set_config(use_proxy(url="rsaproxy.uk.rsa-ins.com", port=8080, auth = "ntlm")) 
 
 # Function to scrape high-level board game details from bgg main page
 getInfo <- function(i){
@@ -214,7 +213,7 @@ getAllData <- function(i){
 
 # Run
 #n <- 783
-n <- 2
+n <- 100
 allData <- vector(mode="list", length=n)
 for(i in 1:n){
   allData[[i]] <- getAllData(i)

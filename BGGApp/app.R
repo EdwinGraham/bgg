@@ -7,24 +7,28 @@
 #    http://shiny.rstudio.com/
 #
 
+# Required packages
 library(shiny)
 library(plotly)
 library(data.table)
 
+# Bring in data
 load("bggData.rda") # or load("BGGApp/bggData.rda")
 
+# Filter
 maxGames <- 10000
 
 dtGames <- allData$dtGames
 setorder(dtGames, -numRatings)
 dtGames <- dtGames[seq(1, min(maxGames, nrow(dtGames)))]
-
 dtLinks <- allData$dtLinks[Id %in% dtGames$Id]
 dtRanks <- allData$dtRanks[Id %in% dtGames$Id]
+
+# Date / time of data extract
 dateOfExtract <- allData$date
 rm(allData)
 
-# Add label
+# Label text for hover over
 setorder(dtRanks, Id, subGroup)
 dtRanks2 <- dtRanks[!is.na(rank), .(rankText = paste0(paste0("; ", subGroup, " ", formatC(rank, format="d", big.mark = ",")), collapse="")), keyby=Id]
 setkey(dtGames, Id)
@@ -42,25 +46,14 @@ dtGames[, label:=paste0("<b>", title, "</b> (", year, ")",
                         "; best ", numPlayersBest,
                         "<br><b>Playing time:</b> ", ifelse(minPlayTime==maxPlayTime, minPlayTime, paste0(minPlayTime, "-", maxPlayTime)), " mins")]
 
-num <- nrow(dtGames)
-
-# Playing time
-dtGames[, minPlayTime := pmax(minPlayTime, 10)]
-dtGames[, maxPlayTime := pmax(minPlayTime, maxPlayTime)]
-
-# Recommended player count
-dtGames[, minPlayers := pmax(minPlayers, 1)]
-dtGames[, maxPlayers := pmax(minPlayers, maxPlayers)]
-
 dtGames[is.na(minPlayersRecommended), minPlayersRecommended := minPlayers]
 dtGames[is.na(maxPlayersRecommended), maxPlayersRecommended := maxPlayers]
 
-dtGames[, minPlayersRecommended := pmin(pmax(minPlayersRecommended, minPlayers), maxPlayers)]
-dtGames[, maxPlayersRecommended := pmin(pmax(maxPlayersRecommended, minPlayers), maxPlayers)]
-dtGames[, numPlayersBest := pmin(pmax(numPlayersBest, minPlayers), maxPlayers)]
-
 # Weight
 dtGames[avWeight < 1, avWeight:=1]
+
+# Number of games
+num <- nrow(dtGames)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -137,7 +130,7 @@ ui <- fluidPage(
   )
   ,
   
- 
+  
   
   # Show the plot
   plotlyOutput("plot")

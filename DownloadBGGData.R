@@ -197,6 +197,19 @@ getDetails <- function(Id){
                         numWeights=numweights,
                         avWeight=averageweight)
   
+  # Fix player count
+  dtGames[, minPlayers := pmax(minPlayers, 1)]
+  dtGames[, maxPlayers := pmax(minPlayers, maxPlayers)]
+  
+  # Fix player recommendations
+  dtGames[is.na(minPlayersRecommended), numPlayersBest := NA]
+  dtGames[, minPlayersRecommended := pmin(pmax(minPlayersRecommended, minPlayers), maxPlayers)]
+  dtGames[, maxPlayersRecommended := pmin(pmax(maxPlayersRecommended, minPlayers), maxPlayers)]
+  
+  # Fix playing time
+  dtGames[, minPlayTime := pmax(minPlayTime, 10)]
+  dtGames[, maxPlayTime := pmax(minPlayTime, maxPlayTime)]
+  
   return(list(dtGames=dtGames,
               dtLinks=dtLinks,
               dtRanks=dtRanks))

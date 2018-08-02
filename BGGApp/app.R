@@ -44,6 +44,24 @@ dtGames[, label:=paste0("<b>", title, "</b> (", year, ")",
 
 num <- nrow(dtGames)
 
+# Playing time
+dtGames[, minPlayTime := pmax(minPlayTime, 10)]
+dtGames[, maxPlayTime := pmax(minPlayTime, maxPlayTime)]
+
+# Recommended player count
+dtGames[, minPlayers := pmax(minPlayers, 1)]
+dtGames[, maxPlayers := pmax(minPlayers, maxPlayers)]
+
+dtGames[is.na(minPlayersRecommended), minPlayersRecommended := minPlayers]
+dtGames[is.na(maxPlayersRecommended), maxPlayersRecommended := maxPlayers]
+
+dtGames[, minPlayersRecommended := pmin(pmax(minPlayersRecommended, minPlayers), maxPlayers)]
+dtGames[, maxPlayersRecommended := pmin(pmax(maxPlayersRecommended, minPlayers), maxPlayers)]
+dtGames[, numPlayersBest := pmin(pmax(numPlayersBest, minPlayers), maxPlayers)]
+
+# Weight
+dtGames[avWeight < 1, avWeight:=1]
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   
@@ -92,8 +110,8 @@ ui <- fluidPage(
            sliderInput(inputId="weightRange",
                        label="Select weight range:",
                        min = 1,
-                       max = 4,
-                       value = c(1, 4),
+                       max = 5,
+                       value = c(1, 5),
                        step = 0.01,
                        round = FALSE)      
     ),
@@ -197,10 +215,10 @@ server <- function(input, output) {
   output$plot <- renderPlotly({
     plot_ly(rv$dt[avWeight >= input$weightRange[1] &
                     avWeight <= input$weightRange[2] &
-                    !(maxPlayersRecommended < input$playerRange[1] |
+                    !(pmin(maxPlayersRecommended, 20) < input$playerRange[1] |
                         pmin(minPlayersRecommended, 20) > input$playerRange[2]) &
-                    maxPlayTime >= input$timeRange[1] &
-                    maxPlayTime <= input$timeRange[2]],
+                    pmin(maxPlayTime, 360) >= input$timeRange[1] &
+                    pmin(maxPlayTime, 360) <= input$timeRange[2]],
             x = ~numRatings,
             y = ~rating,
             hoverinfo = "text",

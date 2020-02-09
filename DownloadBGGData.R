@@ -27,9 +27,9 @@ getInfo <- function(i){
             i,
             "?sort=title"
           ), 
-          destfile = pageLoc),
-        silent = TRUE
-      )
+          destfile = pageLoc)
+      ),
+      silent = TRUE
     )
     if (class(x) == "try-error") {
       # If download fails, sleep for 5 seconds and try again
@@ -215,9 +215,9 @@ getDetails <- function(i, Id){
             paste0(Ids, collapse = ","),
             "&stats=1&ratingcomments=1"
           ), 
-          destfile = pageLoc),
-        silent = TRUE
-      )
+          destfile = pageLoc)
+      ),
+      silent = TRUE
     )
     if (class(x) == "try-error"){
       # If download fails, sleep for 5 seconds and try again
@@ -730,9 +730,9 @@ getRatingsComments <- function(Id, page){
             "&ratingcomments=1&page=",
             page
           ), 
-          destfile = pageLoc),
-        silent = TRUE
-      )
+          destfile = pageLoc)
+      ),
+      silent = TRUE
     )
     if (class(x) == "try-error"){
       # If download fails, sleep for 5 seconds and try again
